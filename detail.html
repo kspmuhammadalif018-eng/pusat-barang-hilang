@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detail Barang</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar"><div class="container nav-inner">
+<a class="brand" href="index.html"><span class="brand-mark">🔎</span><span>Pusat Barang Hilang<small>Temu • Lapor • Kembali</small></span></a>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="nav-links" id="navLinks"><a href="index.html">Beranda</a><a href="lapor-hilang.html">Lapor Hilang</a><a href="lapor-temuan.html">Lapor Temuan</a><a href="dashboard.html">Dashboard</a><a href="tentang.html">Tentang</a></div>
+</div></nav>
+
+<main class="container section">
+<a href="index.html" class="btn btn-outline btn-small">← Kembali ke Daftar</a>
+<div id="detailWrap" style="margin-top:16px"></div>
+
+<div class="card" style="margin-top:18px;padding:20px">
+  <h3>📝 Klaim Masuk untuk Barang Ini</h3>
+  <div id="claimList" style="margin-top:10px"></div>
+</div>
+</main>
+
+<div class="modal-back" id="modalKlaim">
+  <div class="modal">
+    <h3>📩 Form Klaim Barang</h3>
+    <p class="hint">Buktikan bahwa barang ini milik Anda. Klaim akan diverifikasi admin/posko.</p>
+    <form id="formKlaim" style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>Nama Lengkap *</label><input class="form-control" id="kNama" required></div>
+      <div class="form-group"><label>No. HP / WA *</label><input class="form-control" id="kKontak" required></div>
+      <div class="form-group"><label>Bukti Kepemilikan *</label><input class="form-control" id="kBukti" required placeholder="cth: Foto nota, dus, ciri khusus..."></div>
+      <div class="form-group"><label>Pesan Tambahan</label><textarea class="form-control" id="kPesan" placeholder="Ceritakan kapan & di mana hilangnya..."></textarea></div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center">Kirim Klaim</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+const item = getItemById(id);
+const wrap = document.getElementById('detailWrap');
+
+if(!item){
+  wrap.innerHTML = `<div class="card empty"><div class="big">❓</div><h3>Data tidak ditemukan</h3><p>ID ${escapeHtml(id||'-')} tidak ada. Mungkin sudah dihapus.</p><a class="btn btn-primary" href="index.html" style="margin-top:12px">Ke Beranda</a></div>`;
+}else{
+  const tipeTxt = item.tipe==='hilang' ? 'BARANG HILANG' : 'BARANG DITEMUKAN';
+  const tipeCls = item.tipe==='hilang' ? 'tag-hilang' : 'tag-temuan';
+  const imgHtml = item.foto ? `<img src="${item.foto}">` : `<span>${iconFor(item.kategori)}</span>`;
+  const bisaKlaim = item.status!=='kembali';
+  wrap.innerHTML = `
+  <div class="detail-grid">
+    <div class="detail-img">${imgHtml}</div>
+    <div class="card detail-info">
+      <span class="tag ${tipeCls}">${tipeTxt}</span>
+      <span class="tag tag-kat">${statusLabel(item.status)}</span>
+      <h2 style="margin:12px 0 6px">${escapeHtml(item.nama)}</h2>
+      <p class="hint">${escapeHtml(item.id)} • ${iconFor(item.kategori)} ${escapeHtml(item.kategori)}</p>
+      <div style="margin-top:12px">
+        <div class="kv"><b>Deskripsi</b><span>${escapeHtml(item.deskripsi)}</span></div>
+        <div class="kv"><b>Lokasi</b><span>📍 ${escapeHtml(item.lokasi)}</span></div>
+        <div class="kv"><b>Tanggal</b><span>📅 ${fmtTanggal(item.tanggal)}</span></div>
+        <div class="kv"><b>Pelapor</b><span>👤 ${escapeHtml(item.pelapor)}</span></div>
+        <div class="kv"><b>Kontak</b><span>📞 ${escapeHtml(item.kontak)}</span></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+        ${bisaKlaim?`<button class="btn btn-primary" onclick="openModal()">📩 Klaim Barang Ini</button>`:`<span class="tag tag-kembali">✅ Sudah kembali ke pemilik</span>`}
+        <a class="btn btn-outline" target="_blank" href="https://wa.me/?text=${encodeURIComponent('Info barang: '+item.nama+' ('+item.id+') di Pusat Barang Hilang')}">↗ Bagikan WA</a>
+      </div>
+    </div>
+  </div>`;
+  renderClaims();
+}
+function renderClaims(){
+  const all = getClaims().filter(c=>c.itemId===id);
+  const el = document.getElementById('claimList');
+  if(!all.length){ el.innerHTML = `<p class="hint">Belum ada klaim. Jadilah yang pertama jika ini milik Anda.</p>`; return; }
+  el.innerHTML = all.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px"><b>${escapeHtml(c.nama)}</b> <span class="tag tag-kat">${escapeHtml(c.status)}</span><br><span class="hint">📞 ${escapeHtml(c.kontak)} • ${fmtTanggal(c.tanggal)}<br>🧾 ${escapeHtml(c.bukti)}<br>💬 ${escapeHtml(c.pesan||'-')}</span></div>`).join('');
+}
+function openModal(){ document.getElementById('modalKlaim').classList.add('show'); }
+function closeModal(){ document.getElementById('modalKlaim').classList.remove('show'); }
+document.getElementById('modalKlaim').addEventListener('click', e=>{ if(e.target.id==='modalKlaim') closeModal(); });
+document.getElementById('formKlaim').addEventListener('submit', e=>{
+  e.preventDefault();
+  const nama=document.getElementById('kNama').value.trim();
+  const kontak=document.getElementById('kKontak').value.trim();
+  const bukti=document.getElementById('kBukti').value.trim();
+  const pesan=document.getElementById('kPesan').value.trim();
+  if(!nama||!kontak||!bukti){ toast('Lengkapi nama, kontak, dan bukti!'); return; }
+  addClaim({itemId:id,nama,kontak,bukti,pesan});
+  closeModal(); toast('✅ Klaim terkirim, menunggu verifikasi admin');
+  setTimeout(()=>location.reload(),800);
+});
+</script>
+</body>
+</html>

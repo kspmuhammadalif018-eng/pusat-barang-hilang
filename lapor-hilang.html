@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lapor Barang Hilang</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar"><div class="container nav-inner">
+<a class="brand" href="index.html"><span class="brand-mark">🔎</span><span>Pusat Barang Hilang<small>Temu • Lapor • Kembali</small></span></a>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="nav-links" id="navLinks"><a href="index.html">Beranda</a><a href="lapor-hilang.html">Lapor Hilang</a><a href="lapor-temuan.html">Lapor Temuan</a><a href="dashboard.html">Dashboard</a><a href="tentang.html">Tentang</a></div>
+</div></nav>
+
+<main class="container section">
+<div class="form-wrap">
+  <h2>📢 Form Laporan Barang Hilang</h2>
+  <p class="hint" style="margin:6px 0 18px">Isi sedetail mungkin agar mudah dikenali. Semua field bertanda * wajib diisi.</p>
+  <div class="alert alert-info">📌 Setelah submit, laporan langsung tampil di Beranda dan bisa diklaim jika ada yang menemukan.</div>
+  <form id="formHilang" class="card form-card">
+    <div class="form-grid">
+      <div class="form-group full"><label>Nama Barang *</label><input class="form-control" id="nama" required placeholder="cth: Dompet kulit coklat"></div>
+      <div class="form-group"><label>Kategori *</label><select class="form-control" id="kategori" required></select></div>
+      <div class="form-group"><label>Tanggal Hilang *</label><input class="form-control" type="date" id="tanggal" required></div>
+      <div class="form-group full"><label>Lokasi Terakhir *</label><input class="form-control" id="lokasi" required placeholder="cth: Kantin Blok A / Lab Komputer 2"></div>
+      <div class="form-group full"><label>Deskripsi / Ciri-ciri *</label><textarea class="form-control" id="deskripsi" required placeholder="Warna, merek, isi, goresan khas, dll..."></textarea></div>
+      <div class="form-group"><label>Nama Pelapor *</label><input class="form-control" id="pelapor" required placeholder="Nama lengkap"></div>
+      <div class="form-group"><label>No. HP / WA *</label><input class="form-control" id="kontak" required placeholder="08xx-xxxx-xxxx"></div>
+      <div class="form-group full"><label>Foto Barang (opsional)</label><input type="file" id="foto" accept="image/*"><div class="preview" id="preview" style="margin-top:10px"><span>🖼️ Pratinjau foto akan muncul di sini</span></div><span class="hint">Foto tersimpan lokal (base64) — cocok untuk demo sidang tanpa server.</span></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center">Kirim Laporan Hilang</button>
+      <a href="index.html" class="btn btn-outline">Batal</a>
+    </div>
+  </form>
+</div>
+</main>
+
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script>
+const katSel = document.getElementById('kategori');
+KATEGORI.forEach(k=>{ const o=document.createElement('option'); o.value=o.textContent=k; katSel.appendChild(o); });
+document.getElementById('tanggal').value = new Date().toISOString().slice(0,10);
+let fotoBase64='';
+document.getElementById('foto').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev=>{ fotoBase64 = ev.target.result; document.getElementById('preview').innerHTML = `<img src="${fotoBase64}">`; };
+  r.readAsDataURL(f);
+});
+document.getElementById('formHilang').addEventListener('submit', e=>{
+  e.preventDefault();
+  const data = {
+    tipe:'hilang',
+    nama:val('nama'), kategori:val('kategori'), tanggal:val('tanggal'),
+    lokasi:val('lokasi'), deskripsi:val('deskripsi'),
+    pelapor:val('pelapor'), kontak:val('kontak'), foto:fotoBase64
+  };
+  if(!data.nama||!data.lokasi||!data.deskripsi){ toast('Lengkapi semua field wajib!'); return; }
+  const saved = addItem(data);
+  sessionStorage.setItem('pbh_toast','✅ Laporan '+saved.id+' berhasil dikirim!');
+  location.href='index.html';
+});
+function val(id){ return document.getElementById(id).value.trim(); }
+</script>
+</body>
+</html>

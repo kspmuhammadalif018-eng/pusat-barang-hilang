@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tentang - Pusat Barang Hilang</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar"><div class="container nav-inner">
+<a class="brand" href="index.html"><span class="brand-mark">🔎</span><span>Pusat Barang Hilang<small>Temu • Lapor • Kembali</small></span></a>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="nav-links" id="navLinks"><a href="index.html">Beranda</a><a href="lapor-hilang.html">Lapor Hilang</a><a href="lapor-temuan.html">Lapor Temuan</a><a href="dashboard.html">Dashboard</a><a href="tentang.html">Tentang</a></div>
+</div></nav>
+
+<main class="container section">
+<div class="form-wrap" style="max-width:860px">
+<h2>ℹ️ Tentang Sistem</h2>
+<p style="margin:8px 0 18px">Website <b>Pusat Pencarian Barang Hilang</b> adalah project akhir sistem informasi untuk mendata, mempublikasikan, dan mengembalikan barang hilang di lingkungan kampus secara cepat dan terdokumentasi.</p>
+
+<div class="grid" style="grid-template-columns:1fr 1fr">
+<div class="card" style="padding:20px"><h3>🎯 Tujuan</h3><ul style="margin:10px 0 0 18px;font-size:.93rem"><li>Menggantikan papan pengumuman manual</li><li>Mempertemukan pelapor hilang & penemu</li><li>Verifikasi klaim yang aman oleh admin</li><li>Rekap data untuk laporan posko</li></ul></div>
+<div class="card" style="padding:20px"><h3>👥 Aktor (Use Case)</h3><ul style="margin:10px 0 0 18px;font-size:.93rem"><li><b>Mahasiswa/Pelapor:</b> lapor hilang, cari, klaim</li><li><b>Penemu:</b> lapor temuan</li><li><b>Admin/Posko:</b> verifikasi, kelola, export</li></ul></div>
+</div>
+
+<div class="card" style="padding:22px;margin-top:18px">
+<h3>🗂️ Struktur Database (untuk Bab 3 Laporan)</h3>
+<p class="hint">Lihat file <code>database.sql</code> — sudah disiapkan skema MySQL jika penguji meminta versi PHP/MySQL.</p>
+<pre style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:12px;overflow:auto;margin-top:10px;font-size:.82rem">tb_barang (id, tipe, nama, kategori, deskripsi,
+           lokasi, tanggal, pelapor, kontak, foto, status)
+tb_klaim   (id, barang_id, nama, kontak, bukti, pesan, status)
+tb_admin   (id, username, password, nama_posko)</pre>
+</div>
+
+<div class="card" style="padding:22px;margin-top:18px">
+<h3>❓ FAQ Sidang</h3>
+<p style="margin-top:10px"><b>Q: Datanya disimpan di mana?</b><br><span class="hint">A: Demo ini memakai LocalStorage browser (tanpa server) agar mudah dijalankan. Skema MySQL sudah disediakan untuk pengembangan ke PHP/Laravel.</span></p>
+<p style="margin-top:10px"><b>Q: Bagaimana alur klaim?</b><br><span class="hint">A: User mengisi bukti kepemilikan → status barang jadi "Menunggu" → admin Setujui/Tolak di Dashboard → jika disetujui status jadi "Kembali".</span></p>
+<p style="margin-top:10px"><b>Q: Apa yang bisa didemokan ke dosen?</b><br><span class="hint">A: 1) Buat laporan hilang 2) Buat laporan temuan 3) Cari via filter 4) Klaim dari detail 5) Verifikasi di dashboard 6) Export CSV.</span></p>
+</div>
+
+<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+<a class="btn btn-primary" href="index.html">← Ke Beranda</a>
+<a class="btn btn-outline" href="dashboard.html">Buka Dashboard</a>
+</div>
+</div>
+</main>
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

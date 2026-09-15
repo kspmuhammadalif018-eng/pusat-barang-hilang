@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pusat Pencarian Barang Hilang</title>
+<meta name="description" content="Sistem informasi pusat pencarian barang hilang dan temuan kampus.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="brand-mark">🔎</span><span>Pusat Barang Hilang<small>Temu • Lapor • Kembali</small></span></a>
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="nav-links" id="navLinks">
+      <a href="index.html">Beranda</a>
+      <a href="lapor-hilang.html">Lapor Hilang</a>
+      <a href="lapor-temuan.html">Lapor Temuan</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="tentang.html">Tentang</a>
+      <a href="lapor-hilang.html" class="btn btn-primary btn-small" style="color:#fff">+ Buat Laporan</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="badge-pill">🎓 Sistem Informasi Kampus • Project Akhir</span>
+      <h1>Kehilangan barang?<br>Temukan kembali di sini.</h1>
+      <p>Pusat Pencarian Barang Hilang membantu mahasiswa melaporkan kehilangan, mempublikasikan temuan, dan mengklaim barang dengan verifikasi yang aman.</p>
+      <div class="hero-stats">
+        <div class="hstat"><b id="stHilang">0</b><span>Barang Hilang</span></div>
+        <div class="hstat"><b id="stTemuan">0</b><span>Barang Ditemukan</span></div>
+        <div class="hstat"><b id="stKembali">0</b><span>Kembali ke Pemilik</span></div>
+      </div>
+    </div>
+    <div class="search-card">
+      <h3>🔍 Cari Barang Sekarang</h3>
+      <p class="hint" style="margin-bottom:12px">Coba: "dompet", "kunci", "laptop", "KTM"...</p>
+      <div class="search-row">
+        <input id="heroSearch" placeholder="Nama barang / lokasi / ciri-ciri...">
+        <button class="btn btn-primary" onclick="doHeroSearch()">Cari</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <a class="btn btn-accent btn-small" href="lapor-hilang.html">📢 Saya Kehilangan</a>
+        <a class="btn btn-outline btn-small" href="lapor-temuan.html">✋ Saya Menemukan</a>
+      </div>
+      <p class="hint" style="margin-top:12px">💡 Tips sidang: tunjukkan alur Lapor → Cari → Klaim → Verifikasi Admin.</p>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="section">
+    <div class="section-title">
+      <div><h2>📋 Daftar Barang Terbaru</h2><p>Gunakan filter untuk mempersempit pencarian</p></div>
+      <button class="btn btn-outline btn-small" onclick="resetFilter()">Reset Filter</button>
+    </div>
+
+    <div class="filter-bar">
+      <input id="fKeyword" placeholder="🔍 Keyword...">
+      <select id="fKategori"><option value="">Semua Kategori</option></select>
+      <select id="fTipe"><option value="">Hilang + Temuan</option><option value="hilang">Hilang saja</option><option value="temuan">Temuan saja</option></select>
+      <select id="fStatus"><option value="">Semua Status</option><option value="aktif">Terdaftar</option><option value="menunggu">Menunggu Verifikasi</option><option value="kembali">Sudah Kembali</option></select>
+      <button class="btn btn-primary" onclick="renderList()">Filter</button>
+    </div>
+
+    <div class="grid" id="listBarang"></div>
+    <div id="emptyState" class="card empty" style="display:none;margin-top:16px">
+      <div class="big">📭</div>
+      <h3>Tidak ditemukan</h3>
+      <p>Coba kata kunci lain atau buat laporan kehilangan baru.</p>
+      <a class="btn btn-primary" href="lapor-hilang.html" style="margin-top:12px">Buat Laporan Hilang</a>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="section-title"><div><h2>⚙️ Cara Kerja Sistem</h2><p>Alur 3 langkah yang mudah dijelaskan ke dosen penguji</p></div></div>
+    <div class="steps">
+      <div class="card step"><div class="num" style="background:#1d4ed8">1</div><h3>Lapor</h3><p class="hint">Isi form kehilangan / temuan lengkap dengan foto, lokasi, dan kontak. Data tersimpan otomatis.</p></div>
+      <div class="card step"><div class="num" style="background:#f59e0b">2</div><h3>Cari & Cocokkan</h3><p class="hint">Gunakan pencarian + filter kategori. Sistem mencocokkan barang hilang dengan temuan.</p></div>
+      <div class="card step"><div class="num" style="background:#16a34a">3</div><h3>Klaim & Verifikasi</h3><p class="hint">Ajukan klaim dengan bukti kepemilikan. Admin verifikasi, barang kembali ke pemilik.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container foot-grid">
+    <div><h4>🔎 Pusat Pencarian Barang Hilang</h4><p style="font-size:.9rem">Project Akhir — Sistem Informasi pendataan barang hilang & temuan di lingkungan kampus. Dibangun dengan HTML + CSS + JavaScript + LocalStorage.</p></div>
+    <div><h4>Navigasi</h4><a href="index.html">Beranda</a><a href="lapor-hilang.html">Lapor Hilang</a><a href="lapor-temuan.html">Lapor Temuan</a><a href="dashboard.html">Dashboard Admin</a></div>
+    <div><h4>Bantuan</h4><a href="tentang.html">Tentang & FAQ</a><a href="dashboard.html">Posko / Admin</a><a href="#" onclick="resetDemo();return false;">Reset Data Demo</a></div>
+  </div>
+  <div class="container" style="margin-top:18px;font-size:.82rem;color:#64748b">© 2026 Pusat Pencarian Barang Hilang • Untuk keperluan akademik</div>
+</footer>
+
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script>
+const fK = document.getElementById('fKeyword');
+const fKat = document.getElementById('fKategori');
+const fT = document.getElementById('fTipe');
+const fS = document.getElementById('fStatus');
+
+KATEGORI.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; fKat.appendChild(o); });
+[fK,fKat,fT,fS].forEach(el=> el.addEventListener('input', renderList));
+document.getElementById('heroSearch').addEventListener('input', e=>{ fK.value=e.target.value; renderList(); });
+
+function doHeroSearch(){
+  fK.value = document.getElementById('heroSearch').value;
+  renderList();
+  document.getElementById('listBarang').scrollIntoView({behavior:'smooth'});
+}
+function resetFilter(){ fK.value='';fKat.value='';fT.value='';fS.value='';document.getElementById('heroSearch').value='';renderList(); }
+
+function renderList(){
+  const items = getItems();
+  document.getElementById('stHilang').textContent = items.filter(i=>i.tipe==='hilang').length;
+  document.getElementById('stTemuan').textContent = items.filter(i=>i.tipe==='temuan').length;
+  document.getElementById('stKembali').textContent = items.filter(i=>i.status==='kembali').length;
+
+  const kw = fK.value.toLowerCase().trim();
+  const filtered = items.filter(it=>{
+    if(fKat.value && it.kategori!==fKat.value) return false;
+    if(fT.value && it.tipe!==fT.value) return false;
+    if(fS.value && it.status!==fS.value) return false;
+    if(kw){
+      const hay = (it.nama+' '+(it.deskripsi||'')+' '+(it.lokasi||'')+' '+it.kategori+' '+it.id).toLowerCase();
+      if(!hay.includes(kw)) return false;
+    }
+    return true;
+  }).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+
+  const wrap = document.getElementById('listBarang');
+  wrap.innerHTML = filtered.map(cardHTML).join('');
+  document.getElementById('emptyState').style.display = filtered.length? 'none':'block';
+
+  const msg = sessionStorage.getItem('pbh_toast');
+  if(msg){ toast(msg); sessionStorage.removeItem('pbh_toast'); }
+}
+renderList();
+</script>
+</body>
+</html>

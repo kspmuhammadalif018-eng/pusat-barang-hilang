@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Admin - Pusat Barang Hilang</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar"><div class="container nav-inner">
+<a class="brand" href="index.html"><span class="brand-mark">📊</span><span>Dashboard Admin<small>Posko Barang Hilang</small></span></a>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="nav-links" id="navLinks"><a href="index.html">Beranda</a><a href="lapor-hilang.html">Lapor Hilang</a><a href="lapor-temuan.html">Lapor Temuan</a><a href="dashboard.html">Dashboard</a><a href="tentang.html">Tentang</a></div>
+</div></nav>
+
+<main class="container section">
+<h2>📊 Dashboard Admin / Posko</h2>
+<p class="hint" style="margin-bottom:18px">Kelola laporan masuk, verifikasi klaim, dan pantau statistik. Login disederhanakan untuk demo sidang (bisa ditambah tabel users di versi PHP).</p>
+
+<div class="dash">
+  <aside class="side">
+    <a href="#" class="active" onclick="showTab('laporan',this);return false;">📋 Semua Laporan</a>
+    <a href="#" onclick="showTab('klaim',this);return false;">📩 Klaim Masuk <span id="badgeKlaim"></span></a>
+    <a href="#" onclick="showTab('statistik',this);return false;">📈 Statistik</a>
+    <hr style="border-color:rgba(255,255,255,.15);margin:12px 0">
+    <a href="index.html">🏠 Lihat Situs</a>
+    <a href="#" onclick="exportCSV();return false;">⬇ Export CSV</a>
+    <a href="#" onclick="if(confirm('Reset ke data demo awal?')){resetDemo();location.reload();}return false;">♻ Reset Data Demo</a>
+  </aside>
+
+  <div>
+    <div class="stat-grid">
+      <div class="card stat"><b id="sTotal">0</b><span>📦 Total Laporan</span></div>
+      <div class="card stat"><b id="sHilang">0</b><span>🔴 Hilang</span></div>
+      <div class="card stat"><b id="sTemuan">0</b><span>🟢 Temuan</span></div>
+      <div class="card stat"><b id="sTunggu">0</b><span>🟡 Menunggu Verifikasi</span></div>
+    </div>
+
+    <div id="tab-laporan" class="card" style="padding:18px">
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <input id="q" class="form-control" style="flex:1;min-width:200px" placeholder="🔍 Cari ID / nama / lokasi..." oninput="renderTable()">
+        <select id="qf" class="form-control" style="max-width:200px" onchange="renderTable()">
+          <option value="">Semua</option><option value="hilang">Hilang</option><option value="temuan">Temuan</option>
+          <option value="aktif">Aktif</option><option value="menunggu">Menunggu</option><option value="kembali">Kembali</option>
+        </select>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>Barang</th><th>Tipe</th><th>Lokasi</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="tab-klaim" class="card" style="padding:18px;display:none">
+      <h3>📩 Verifikasi Klaim</h3>
+      <p class="hint">Setujui jika bukti valid → status barang otomatis jadi "Sudah Kembali".</p>
+      <div id="claimWrap" style="margin-top:12px"></div>
+    </div>
+
+    <div id="tab-statistik" class="card" style="padding:18px;display:none">
+      <h3>📈 Statistik per Kategori</h3>
+      <div class="chart" id="chart"></div>
+      <div class="bar-labels" id="chartLabels"></div>
+      <div id="statDetail" style="margin-top:16px"></div>
+    </div>
+  </div>
+</div>
+</main>
+
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script>
+function showTab(name, el){
+  ['laporan','klaim','statistik'].forEach(t=> document.getElementById('tab-'+t).style.display = t===name?'block':'none');
+  document.querySelectorAll('.side a').forEach(a=>a.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(name==='statistik') renderChart();
+  if(name==='klaim') renderClaims();
+}
+function refreshStats(){
+  const items=getItems(), claims=getClaims();
+  document.getElementById('sTotal').textContent=items.length;
+  document.getElementById('sHilang').textContent=items.filter(i=>i.tipe==='hilang').length;
+  document.getElementById('sTemuan').textContent=items.filter(i=>i.tipe==='temuan').length;
+  document.getElementById('sTunggu').textContent=items.filter(i=>i.status==='menunggu').length + claims.filter(c=>c.status==='menunggu').length;
+  const pending=claims.filter(c=>c.status==='menunggu').length;
+  document.getElementById('badgeKlaim').textContent = pending?`(${pending})`:'';
+}
+function renderTable(){
+  refreshStats();
+  const q=document.getElementById('q').value.toLowerCase();
+  const f=document.getElementById('qf').value;
+  const rows=getItems().filter(it=>{
+    if(f && it.tipe!==f && it.status!==f) return false;
+    if(q && !(it.id+' '+it.nama+' '+(it.lokasi||'')+' '+it.kategori).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById('tbody').innerHTML = rows.map(it=>`<tr>
+    <td><b>${escapeHtml(it.id)}</b><br><span class="hint">${fmtTanggal(it.tanggal)}</span></td>
+    <td>${iconFor(it.kategori)} <b>${escapeHtml(it.nama)}</b><br><span class="hint">${escapeHtml(it.kategori)} • ${escapeHtml(it.pelapor)}</span></td>
+    <td><span class="tag ${it.tipe==='hilang'?'tag-hilang':'tag-temuan'}">${it.tipe}</span></td>
+    <td>${escapeHtml(it.lokasi)}</td>
+    <td><span class="tag tag-kat">${statusLabel(it.status)}</span></td>
+    <td><div class="actions">
+      <a class="btn btn-outline btn-small" href="detail.html?id=${encodeURIComponent(it.id)}">Lihat</a>
+      ${it.status!=='kembali'?`<button class="btn btn-primary btn-small" onclick="setBack('${it.id}')">✓ Kembali</button>`:''}
+      <button class="btn btn-danger btn-small" onclick="if(confirm('Hapus ${it.id}?')){deleteItem('${it.id}');renderTable();toast('Dihapus')}">Hapus</button>
+    </div></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada data</td></tr>`;
+}
+function setBack(id){ updateItem(id,{status:'kembali'}); renderTable(); toast('✅ '+id+' ditandai kembali'); }
+function renderClaims(){
+  refreshStats();
+  const list=getClaims();
+  const w=document.getElementById('claimWrap');
+  if(!list.length){ w.innerHTML=`<p class="hint">Belum ada klaim masuk.</p>`; return; }
+  w.innerHTML=list.map(c=>{
+    const it=getItemById(c.itemId);
+    return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+    <b>${escapeHtml(c.id)}</b> → <a href="detail.html?id=${encodeURIComponent(c.itemId)}" style="color:var(--primary);font-weight:700">${escapeHtml(it?it.nama:c.itemId)}</a>
+    <span class="tag tag-kat" style="margin-left:8px">${escapeHtml(c.status)}</span>
+    <div class="hint" style="margin:8px 0">👤 ${escapeHtml(c.nama)} • 📞 ${escapeHtml(c.kontak)} • ${fmtTanggal(c.tanggal)}<br>🧾 Bukti: ${escapeHtml(c.bukti)}<br>💬 ${escapeHtml(c.pesan||'-')}</div>
+    ${c.status==='menunggu'?`<div class="actions"><button class="btn btn-primary btn-small" onclick="verif('${c.id}','disetujui')">✓ Setujui</button><button class="btn btn-danger btn-small" onclick="verif('${c.id}','ditolak')">✕ Tolak</button></div>`:''}
+    </div>`;
+  }).join('');
+}
+function verif(id,st){ updateClaim(id,st); renderClaims(); renderTable(); toast(st==='disetujui'?'✅ Klaim disetujui':'Klaim ditolak'); }
+function renderChart(){
+  const items=getItems();
+  const counts=KATEGORI.map(k=>items.filter(i=>i.kategori===k).length);
+  const max=Math.max(...counts,1);
+  document.getElementById('chart').innerHTML=counts.map(c=>`<div class="bar" style="height:${Math.max(12,c/max*120)}px"><span>${c}</span></div>`).join('');
+  document.getElementById('chartLabels').innerHTML=KATEGORI.map(k=>`<div>${iconFor(k)}<br>${k.split(' ')[0]}</div>`).join('');
+  const kembali=items.filter(i=>i.status==='kembali').length;
+  const rate=items.length?Math.round(kembali/items.length*100):0;
+  document.getElementById('statDetail').innerHTML=`<div class="alert alert-success">🎯 Tingkat pengembalian: <b>${rate}%</b> (${kembali} dari ${items.length} laporan sudah kembali). Bagus untuk ditampilkan saat sidang!</div>`;
+}
+function exportCSV(){
+  const items=getItems();
+  const head='id,tipe,nama,kategori,lokasi,tanggal,pelapor,kontak,status\n';
+  const body=items.map(i=>[i.id,i.tipe,'"'+String(i.nama).replace(/"/g,'""')+'"','"'+i.kategori+'"','"'+String(i.lokasi).replace(/"/g,'""')+'"',i.tanggal,'"'+i.pelapor+'"',i.kontak,i.status].join(',')).join('\n');
+  const blob=new Blob([head+body],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='laporan-barang-hilang.csv'; a.click();
+  toast('⬇ CSV terunduh');
+}
+renderTable(); renderClaims();
+</script>
+</body>
+</html>
