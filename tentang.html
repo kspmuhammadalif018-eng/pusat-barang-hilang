@@ -38,6 +38,21 @@ tb_admin   (id, username, password, nama_posko)</pre>
 <p style="margin-top:10px"><b>Q: Apa yang bisa didemokan ke dosen?</b><br><span class="hint">A: 1) Buat laporan hilang 2) Buat laporan temuan 3) Cari via filter 4) Klaim dari detail 5) Verifikasi di dashboard 6) Export CSV.</span></p>
 </div>
 
+<div class="card" style="padding:22px;margin-top:18px" id="pengembang">
+<h3>👥 Daftar Pengembang Website</h3>
+<p class="hint" style="margin:4px 0 12px">Tim Project Akhir — Sistem Informasi.</p>
+<button class="btn btn-primary btn-small" id="btnPengembang" onclick="togglePengembang()">Tampilkan Daftar</button>
+<div id="daftarPengembang" style="display:none;margin-top:14px">
+<div class="grid" style="grid-template-columns:1fr 1fr">
+<div class="card" style="padding:14px 16px"><b>1. Muhammad Alif</b><br><span class="hint">NIM 2026583020020</span></div>
+<div class="card" style="padding:14px 16px"><b>2. Cut Zulfa Nabila</b><br><span class="hint">NIM 2026583020017</span></div>
+<div class="card" style="padding:14px 16px"><b>3. Hafizhah Ghazya</b><br><span class="hint">NIM 2026583020076</span></div>
+<div class="card" style="padding:14px 16px"><b>4. Faiza Alya Aziza</b><br><span class="hint">NIM 2026583020025</span></div>
+<div class="card" style="padding:14px 16px"><b>5. Kayla Naviza</b><br><span class="hint">NIM 2026583020023</span></div>
+</div>
+</div>
+</div>
+
 <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
 <a class="btn btn-primary" href="index.html">← Ke Beranda</a>
 <a class="btn btn-outline" href="dashboard.html">Buka Dashboard</a>
@@ -46,5 +61,14 @@ tb_admin   (id, username, password, nama_posko)</pre>
 </main>
 <script src="js/store.js"></script>
 <script src="js/main.js"></script>
+<script>
+function togglePengembang(){
+  var d=document.getElementById('daftarPengembang');
+  var b=document.getElementById('btnPengembang');
+  var show=d.style.display==='none';
+  d.style.display=show?'block':'none';
+  b.textContent=show?'Sembunyikan Daftar':'Tampilkan Daftar';
+}
+</script>
 </body>
 </html>
