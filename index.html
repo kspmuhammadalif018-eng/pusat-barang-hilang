@@ -53,7 +53,8 @@
 </header>
 
 <main class="container">
-  <section class="section">
+  <div id="cloudBadge" style="margin-top:16px"></div>
+  <section class="section" style="padding-top:18px">
     <div class="section-title">
       <div><h2>📋 Daftar Barang Terbaru</h2><p>Gunakan filter untuk mempersempit pencarian</p></div>
       <button class="btn btn-outline btn-small" onclick="resetFilter()">Reset Filter</button>
@@ -88,7 +89,7 @@
 
 <footer>
   <div class="container foot-grid">
-    <div><h4>🔎 Pusat Pencarian Barang Hilang</h4><p style="font-size:.9rem">Project Akhir — Sistem Informasi pendataan barang hilang & temuan di lingkungan kampus. Dibangun dengan HTML + CSS + JavaScript + LocalStorage.</p></div>
+    <div><h4>🔎 Pusat Pencarian Barang Hilang</h4><p style="font-size:.9rem">Project Akhir — Sistem Informasi pendataan barang hilang & temuan di lingkungan kampus. Mode cloud (Supabase) untuk beda device + fallback LocalStorage saat offline.</p></div>
     <div><h4>Navigasi</h4><a href="index.html">Beranda</a><a href="lapor-hilang.html">Lapor Hilang</a><a href="lapor-temuan.html">Lapor Temuan</a><a href="dashboard.html">Dashboard Admin</a></div>
     <div><h4>Bantuan</h4><a href="tentang.html">Tentang & FAQ</a><a href="dashboard.html">Posko / Admin</a><a href="#" onclick="resetDemo();return false;">Reset Data Demo</a></div>
   </div>
@@ -96,6 +97,8 @@
 </footer>
 
 <script src="js/store.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/main.js"></script>
 <script>
 const fK = document.getElementById('fKeyword');
@@ -114,8 +117,10 @@ function doHeroSearch(){
 }
 function resetFilter(){ fK.value='';fKat.value='';fT.value='';fS.value='';document.getElementById('heroSearch').value='';renderList(); }
 
-function renderList(){
-  const items = getItems();
+let ALL_ITEMS = [];
+try { ALL_ITEMS = getItems(); } catch(e){ ALL_ITEMS = []; }
+
+function paintList(items){
   document.getElementById('stHilang').textContent = items.filter(i=>i.tipe==='hilang').length;
   document.getElementById('stTemuan').textContent = items.filter(i=>i.tipe==='temuan').length;
   document.getElementById('stKembali').textContent = items.filter(i=>i.status==='kembali').length;
@@ -135,11 +140,34 @@ function renderList(){
   const wrap = document.getElementById('listBarang');
   wrap.innerHTML = filtered.map(cardHTML).join('');
   document.getElementById('emptyState').style.display = filtered.length? 'none':'block';
+}
 
+function renderList(){
+  paintList(ALL_ITEMS);
+  if(typeof renderCloudBadge==='function') renderCloudBadge('cloudBadge');
+}
+
+async function refreshFromCloud(){
+  renderList();
+  try{
+    if(typeof getItemsAsync==='function'){
+      const cloud = await getItemsAsync();
+      if(Array.isArray(cloud) && cloud.length){
+        ALL_ITEMS = cloud;
+      } else if(Array.isArray(cloud)){
+        // cloud kosong (database baru) → jangan timpa paksa, gabung dengan lokal bila lokal ada
+        if(!ALL_ITEMS.length) ALL_ITEMS = cloud;
+      }
+      paintList(ALL_ITEMS);
+      if(typeof renderCloudBadge==='function') renderCloudBadge('cloudBadge');
+    }
+  }catch(e){}
   const msg = sessionStorage.getItem('pbh_toast');
   if(msg){ toast(msg); sessionStorage.removeItem('pbh_toast'); }
 }
-renderList();
+refreshFromCloud();
+// auto-refresh tiap 30 detik supaya device lain yang lapor langsung muncul
+setInterval(()=>{ if(typeof isCloudEnabled==='function' && isCloudEnabled()) refreshFromCloud(); }, 30000);
 </script>
 </body>
 </html>

@@ -37,22 +37,32 @@
 </main>
 
 <script src="js/store.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/main.js"></script>
 <script>
 const katSel=document.getElementById('kategori');
 KATEGORI.forEach(k=>{const o=document.createElement('option');o.value=o.textContent=k;katSel.appendChild(o);});
 document.getElementById('tanggal').value=new Date().toISOString().slice(0,10);
 let fotoBase64='';
-document.getElementById('foto').addEventListener('change',e=>{
+document.getElementById('foto').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader(); r.onload=ev=>{fotoBase64=ev.target.result;document.getElementById('preview').innerHTML=`<img src="${fotoBase64}">`;}; r.readAsDataURL(f);
+  document.getElementById('preview').innerHTML=`<span>⏳ Mengompres foto...</span>`;
+  fotoBase64=await compressImageFile(f,800,0.7);
+  if(fotoBase64) document.getElementById('preview').innerHTML=`<img src="${fotoBase64}">`;
 });
-document.getElementById('formTemuan').addEventListener('submit',e=>{
+document.getElementById('formTemuan').addEventListener('submit',async e=>{
   e.preventDefault();
+  const btn=e.target.querySelector('button[type="submit"]');
   const data={tipe:'temuan',nama:val('nama'),kategori:val('kategori'),tanggal:val('tanggal'),lokasi:val('lokasi'),deskripsi:val('deskripsi'),pelapor:val('pelapor'),kontak:val('kontak'),foto:fotoBase64};
-  const saved=addItem(data);
-  sessionStorage.setItem('pbh_toast','🎉 Terima kasih! Temuan '+saved.id+' dipublikasikan.');
-  location.href='index.html';
+  if(!data.nama||!data.lokasi||!data.deskripsi){ toast('Lengkapi field wajib!'); return; }
+  btn.disabled=true; const old=btn.textContent; btn.textContent='⏳ Mengirim...';
+  try{
+    const saved=(typeof addItemAsync==='function')?await addItemAsync(data):addItem(data);
+    const mode=(typeof isCloudEnabled==='function'&&isCloudEnabled())?' ke database bersama ☁️':' (mode lokal 📴)';
+    sessionStorage.setItem('pbh_toast','🎉 Terima kasih! Temuan '+saved.id+' dipublikasikan'+mode+'.');
+    location.href='index.html';
+  }catch(err){ toast('Gagal: '+err.message); btn.disabled=false; btn.textContent=old; }
 });
 function val(id){return document.getElementById(id).value.trim();}
 </script>

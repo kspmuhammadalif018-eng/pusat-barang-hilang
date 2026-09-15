@@ -28,19 +28,19 @@
 </div>
 
 <div class="card" style="padding:22px;margin-top:18px">
-<h3>🗂️ Struktur Database (untuk Bab 3 Laporan)</h3>
-<p class="hint">Lihat file <code>database.sql</code> — sudah disiapkan skema MySQL jika penguji meminta versi PHP/MySQL.</p>
+<h3>☁️ Database Bersama (bisa beda device)</h3>
+<p class="hint">Supaya riwayat terlihat di HP + laptop + posko sekaligus, website ini bisa dihubungkan ke <b>Supabase (Postgres gratis)</b>. Tanpa setting pun tetap jalan lokal (LocalStorage) sebagai fallback offline.</p>
 <pre style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:12px;overflow:auto;margin-top:10px;font-size:.82rem">tb_barang (id, tipe, nama, kategori, deskripsi,
            lokasi, tanggal, pelapor, kontak, foto, status)
-tb_klaim   (id, barang_id, nama, kontak, bukti, pesan, status)
-tb_admin   (id, username, password, nama_posko)</pre>
+tb_klaim   (id, item_id, nama, kontak, bukti, pesan, status)</pre>
+<p class="hint" style="margin-top:10px">File: <code>supabase-schema.sql</code> (dijalankan sekali di Supabase) + <code>js/supabase-config.js</code> (isi URL + KEY) + panduan <code>PANDUAN-DATABASE.md</code>. Setting per-device juga bisa lewat <a href="dashboard.html#pengaturan" style="color:var(--primary);font-weight:700">Dashboard → Pengaturan DB</a>. Skema MySQL lama tetap ada di <code>database.sql</code> untuk laporan Bab 3.</p>
 </div>
 
 <div class="card" style="padding:22px;margin-top:18px">
 <h3>❓ FAQ Sidang</h3>
-<p style="margin-top:10px"><b>Q: Datanya disimpan di mana?</b><br><span class="hint">A: Demo ini memakai LocalStorage browser (tanpa server) agar mudah dijalankan. Skema MySQL sudah disediakan untuk pengembangan ke PHP/Laravel.</span></p>
+<p style="margin-top:10px"><b>Q: Datanya disimpan di mana? Bisa beda device?</b><br><span class="hint">A: Bisa. Jika Supabase sudah dihubungkan (Dashboard → Pengaturan DB), semua data tersimpan di database cloud dan terlihat di semua device. Jika belum/offline, otomatis fallback ke LocalStorage browser.</span></p>
 <p style="margin-top:10px"><b>Q: Bagaimana alur klaim?</b><br><span class="hint">A: User mengisi bukti kepemilikan → status barang jadi "Menunggu" → admin Setujui/Tolak di Dashboard → jika disetujui status jadi "Kembali".</span></p>
-<p style="margin-top:10px"><b>Q: Apa yang bisa didemokan ke dosen?</b><br><span class="hint">A: 1) Buat laporan hilang 2) Buat laporan temuan 3) Cari via filter 4) Klaim dari detail 5) Verifikasi di dashboard 6) Export CSV.</span></p>
+<p style="margin-top:10px"><b>Q: Apa yang bisa didemokan ke dosen?</b><br><span class="hint">A: 1) Buat laporan hilang dari HP 2) Tunjukkan langsung muncul di laptop (sinkron cloud) 3) Cari via filter 4) Klaim dari detail 5) Verifikasi di dashboard 6) Export CSV.</span></p>
 </div>
 
 <div class="card" style="padding:22px;margin-top:18px" id="pengembang">

@@ -14,13 +14,14 @@
 
 <main class="container section">
 <h2>📊 Dashboard Admin / Posko</h2>
-<p class="hint" style="margin-bottom:18px">Kelola laporan masuk, verifikasi klaim, dan pantau statistik. Login disederhanakan untuk demo sidang (bisa ditambah tabel users di versi PHP).</p>
-
+<p class="hint" style="margin-bottom:12px">Kelola laporan masuk, verifikasi klaim, dan pantau statistik. Semua perubahan tersinkron ke database bersama ☁️.</p>
+<div id="cloudBadge" style="margin-bottom:18px"></div>
 <div class="dash">
   <aside class="side">
     <a href="#" class="active" onclick="showTab('laporan',this);return false;">📋 Semua Laporan</a>
     <a href="#" onclick="showTab('klaim',this);return false;">📩 Klaim Masuk <span id="badgeKlaim"></span></a>
     <a href="#" onclick="showTab('statistik',this);return false;">📈 Statistik</a>
+    <a href="#" onclick="showTab('pengaturan',this);return false;">☁️ Pengaturan DB</a>
     <hr style="border-color:rgba(255,255,255,.15);margin:12px 0">
     <a href="index.html">🏠 Lihat Situs</a>
     <a href="#" onclick="exportCSV();return false;">⬇ Export CSV</a>
@@ -61,22 +62,58 @@
       <div class="bar-labels" id="chartLabels"></div>
       <div id="statDetail" style="margin-top:16px"></div>
     </div>
+
+    <div id="tab-pengaturan" class="card" style="padding:22px;display:none">
+      <h3>☁️ Pengaturan Database Bersama</h3>
+      <p class="hint" style="margin:6px 0 14px">Agar riwayat barang terlihat di <b>semua device</b> (HP, laptop, posko), hubungkan ke Supabase gratis. Panduan lengkap: <code>PANDUAN-DATABASE.md</code> + jalankan <code>supabase-schema.sql</code> sekali di Supabase.</p>
+      <div id="dbStatus" style="margin-bottom:14px"></div>
+      <div class="form-group" style="margin-bottom:10px"><label>Supabase Project URL</label><input class="form-control" id="sbUrl" placeholder="https://xyzcompany.supabase.co"></div>
+      <div class="form-group" style="margin-bottom:10px"><label>Supabase Anon Public Key</label><input class="form-control" id="sbKey" placeholder="eyJhbGciOi..."></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn btn-primary btn-small" onclick="saveDb()">💾 Simpan & Hubungkan</button>
+        <button class="btn btn-outline btn-small" onclick="testDb()">🔌 Tes Koneksi</button>
+        <button class="btn btn-accent btn-small" onclick="migrateDb()">⬆ Migrasi Data Lokal → Cloud</button>
+        <button class="btn btn-outline btn-small" onclick="reloadCloud()">🔄 Muat Ulang dari Cloud</button>
+        <button class="btn btn-danger btn-small" onclick="disconnectDb()">📴 Putuskan</button>
+      </div>
+      <div id="migrateLog" class="hint" style="margin-top:12px"></div>
+      <div class="alert alert-info" style="margin-top:14px">💡 <b>Cara permanen (recommended):</b> isi juga <code>js/supabase-config.js</code> dengan URL + KEY yang sama, lalu upload/hosting. Maka semua device otomatis terhubung tanpa setting manual.<br><br>1. supabase.com → New Project (free) &nbsp;2. SQL Editor → paste <code>supabase-schema.sql</code> → Run &nbsp;3. Settings → API → copy URL + anon key → paste di atas → Simpan → Migrasi.</div>
+    </div>
   </div>
 </div>
 </main>
 
 <script src="js/store.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/main.js"></script>
 <script>
+let ALL_ITEMS = [];
+let ALL_CLAIMS = [];
 function showTab(name, el){
-  ['laporan','klaim','statistik'].forEach(t=> document.getElementById('tab-'+t).style.display = t===name?'block':'none');
+  ['laporan','klaim','statistik','pengaturan'].forEach(t=>{ const d=document.getElementById('tab-'+t); if(d) d.style.display = t===name?'block':'none'; });
   document.querySelectorAll('.side a').forEach(a=>a.classList.remove('active'));
   if(el) el.classList.add('active');
   if(name==='statistik') renderChart();
   if(name==='klaim') renderClaims();
+  if(name==='pengaturan') renderDbStatus();
+}
+async function loadAll(silent){
+  if(!silent){ document.getElementById('tbody').innerHTML = `<tr><td colspan="6" style="text-align:center">⏳ Memuat dari database...</td></tr>`; }
+  try{
+    if(typeof getItemsAsync==='function') ALL_ITEMS = await getItemsAsync();
+    else ALL_ITEMS = getItems();
+  }catch(e){ ALL_ITEMS = getItems(); }
+  try{
+    if(typeof getClaimsAsync==='function') ALL_CLAIMS = await getClaimsAsync();
+    else ALL_CLAIMS = getClaims();
+  }catch(e){ ALL_CLAIMS = getClaims(); }
+  refreshStats(); renderTable(); renderClaims();
+  if(typeof renderCloudBadge==='function') renderCloudBadge('cloudBadge');
+  renderDbStatus();
 }
 function refreshStats(){
-  const items=getItems(), claims=getClaims();
+  const items=ALL_ITEMS, claims=ALL_CLAIMS;
   document.getElementById('sTotal').textContent=items.length;
   document.getElementById('sHilang').textContent=items.filter(i=>i.tipe==='hilang').length;
   document.getElementById('sTemuan').textContent=items.filter(i=>i.tipe==='temuan').length;
@@ -88,11 +125,12 @@ function renderTable(){
   refreshStats();
   const q=document.getElementById('q').value.toLowerCase();
   const f=document.getElementById('qf').value;
-  const rows=getItems().filter(it=>{
+  const rows=ALL_ITEMS.filter(it=>{
     if(f && it.tipe!==f && it.status!==f) return false;
     if(q && !(it.id+' '+it.nama+' '+(it.lokasi||'')+' '+it.kategori).toLowerCase().includes(q)) return false;
     return true;
   });
+  const esc = s => String(s).replace(/'/g,"\\'");
   document.getElementById('tbody').innerHTML = rows.map(it=>`<tr>
     <td><b>${escapeHtml(it.id)}</b><br><span class="hint">${fmtTanggal(it.tanggal)}</span></td>
     <td>${iconFor(it.kategori)} <b>${escapeHtml(it.nama)}</b><br><span class="hint">${escapeHtml(it.kategori)} • ${escapeHtml(it.pelapor)}</span></td>
@@ -101,18 +139,19 @@ function renderTable(){
     <td><span class="tag tag-kat">${statusLabel(it.status)}</span></td>
     <td><div class="actions">
       <a class="btn btn-outline btn-small" href="detail.html?id=${encodeURIComponent(it.id)}">Lihat</a>
-      ${it.status!=='kembali'?`<button class="btn btn-primary btn-small" onclick="setBack('${it.id}')">✓ Kembali</button>`:''}
-      <button class="btn btn-danger btn-small" onclick="if(confirm('Hapus ${it.id}?')){deleteItem('${it.id}');renderTable();toast('Dihapus')}">Hapus</button>
+      ${it.status!=='kembali'?`<button class="btn btn-primary btn-small" onclick="setBack('${esc(it.id)}')">✓ Kembali</button>`:''}
+      <button class="btn btn-danger btn-small" onclick="delItem('${esc(it.id)}')">Hapus</button>
     </div></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada data</td></tr>`;
 }
-function setBack(id){ updateItem(id,{status:'kembali'}); renderTable(); toast('✅ '+id+' ditandai kembali'); }
+async function setBack(id){ if(typeof updateItemAsync==='function') await updateItemAsync(id,{status:'kembali'}); else updateItem(id,{status:'kembali'}); await loadAll(true); toast('✅ '+id+' ditandai kembali'); }
+async function delItem(id){ if(!confirm('Hapus '+id+' dari SEMUA device?')) return; if(typeof deleteItemAsync==='function') await deleteItemAsync(id); else deleteItem(id); await loadAll(true); toast('Dihapus'); }
 function renderClaims(){
   refreshStats();
-  const list=getClaims();
+  const list=ALL_CLAIMS;
   const w=document.getElementById('claimWrap');
   if(!list.length){ w.innerHTML=`<p class="hint">Belum ada klaim masuk.</p>`; return; }
   w.innerHTML=list.map(c=>{
-    const it=getItemById(c.itemId);
+    const it=ALL_ITEMS.find(x=>x.id===c.itemId);
     return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
     <b>${escapeHtml(c.id)}</b> → <a href="detail.html?id=${encodeURIComponent(c.itemId)}" style="color:var(--primary);font-weight:700">${escapeHtml(it?it.nama:c.itemId)}</a>
     <span class="tag tag-kat" style="margin-left:8px">${escapeHtml(c.status)}</span>
@@ -121,9 +160,9 @@ function renderClaims(){
     </div>`;
   }).join('');
 }
-function verif(id,st){ updateClaim(id,st); renderClaims(); renderTable(); toast(st==='disetujui'?'✅ Klaim disetujui':'Klaim ditolak'); }
+async function verif(id,st){ if(typeof updateClaimAsync==='function') await updateClaimAsync(id,st); else updateClaim(id,st); await loadAll(true); toast(st==='disetujui'?'✅ Klaim disetujui':'Klaim ditolak'); }
 function renderChart(){
-  const items=getItems();
+  const items=ALL_ITEMS;
   const counts=KATEGORI.map(k=>items.filter(i=>i.kategori===k).length);
   const max=Math.max(...counts,1);
   document.getElementById('chart').innerHTML=counts.map(c=>`<div class="bar" style="height:${Math.max(12,c/max*120)}px"><span>${c}</span></div>`).join('');
@@ -133,14 +172,60 @@ function renderChart(){
   document.getElementById('statDetail').innerHTML=`<div class="alert alert-success">🎯 Tingkat pengembalian: <b>${rate}%</b> (${kembali} dari ${items.length} laporan sudah kembali). Bagus untuk ditampilkan saat sidang!</div>`;
 }
 function exportCSV(){
-  const items=getItems();
+  const items=ALL_ITEMS;
   const head='id,tipe,nama,kategori,lokasi,tanggal,pelapor,kontak,status\n';
   const body=items.map(i=>[i.id,i.tipe,'"'+String(i.nama).replace(/"/g,'""')+'"','"'+i.kategori+'"','"'+String(i.lokasi).replace(/"/g,'""')+'"',i.tanggal,'"'+i.pelapor+'"',i.kontak,i.status].join(',')).join('\n');
   const blob=new Blob([head+body],{type:'text/csv'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='laporan-barang-hilang.csv'; a.click();
   toast('⬇ CSV terunduh');
 }
-renderTable(); renderClaims();
+// ---- Pengaturan DB ----
+function fillDbForm(){
+  try{
+    const c = (typeof getSupabaseConfig==='function') ? getSupabaseConfig() : {url:'',key:''};
+    document.getElementById('sbUrl').value = c.url || '';
+    // jangan timpa key dari file config ke input jika file config yang aktif (biar tidak bocor via screenshot)? tetap tampilkan agar bisa dicopy ke device lain
+    document.getElementById('sbKey').value = c.key || '';
+  }catch(e){}
+}
+function renderDbStatus(){
+  fillDbForm();
+  const el=document.getElementById('dbStatus'); if(!el) return;
+  const on = (typeof isCloudEnabled==='function') && isCloudEnabled();
+  if(on) el.innerHTML=`<div class="alert alert-success">☁️ <b>TERHUBUNG</b> ke database bersama — laporan dari HP/laptop lain akan muncul otomatis. Mode: <b>${window.PBH_CLOUD_MODE||'cloud'}</b>${window.PBH_CLOUD_ERROR?'<br>⚠️ '+escapeHtml(window.PBH_CLOUD_ERROR):''}</div>`;
+  else el.innerHTML=`<div class="alert alert-info">📴 <b>MODE LOKAL</b> — data hanya tersimpan di browser ini. Isi URL + KEY Supabase di bawah lalu Simpan agar beda device sinkron.</div>`;
+}
+async function saveDb(){
+  const url=document.getElementById('sbUrl').value.trim();
+  const key=document.getElementById('sbKey').value.trim();
+  if(!url||!key){ toast('Isi URL dan KEY dulu!'); return; }
+  saveSupabaseConfig(url,key);
+  toast('⏳ Menghubungkan...');
+  try{ await testConnection(); toast('✅ Terhubung ke database bersama!'); }
+  catch(e){ toast('⚠️ Gagal: '+e.message); renderDbStatus(); return; }
+  await loadAll(true);
+}
+async function testDb(){
+  try{ await testConnection(); toast('✅ Koneksi OK — tabel terbaca'); }
+  catch(e){ toast('❌ '+e.message); }
+}
+async function migrateDb(){
+  if(!(typeof isCloudEnabled==='function'&&isCloudEnabled())){ toast('Hubungkan database dulu!'); return; }
+  if(!confirm('Upload semua data lokal ke cloud? (data yang sudah ada tidak duplikat)')) return;
+  const log=document.getElementById('migrateLog');
+  log.textContent='⏳ Mengunggah...';
+  try{
+    const r=await migrateLocalToCloud((d,t,m)=>{ log.textContent=`⏳ ${d}/${t} ... ${m||''}`; });
+    log.textContent=`✅ Selesai: ${r.items} barang + ${r.claims} klaim terupload. Cek dari HP lain!`;
+    toast('✅ Migrasi selesai');
+    await loadAll(true);
+  }catch(e){ log.textContent='❌ '+e.message; toast('Gagal migrasi: '+e.message); }
+}
+async function reloadCloud(){ await loadAll(false); toast('🔄 Data dimuat ulang dari cloud'); }
+function disconnectDb(){ if(!confirm('Putus dari database bersama? (data cloud tidak dihapus, hanya device ini kembali lokal)')) return; clearSupabaseConfig(); window.PBH_CLOUD_MODE='local'; renderDbStatus(); if(typeof renderCloudBadge==='function') renderCloudBadge('cloudBadge'); toast('📴 Kembali ke mode lokal'); }
+loadAll(false);
+if(location.hash==='#pengaturan'){ showTab('pengaturan', document.querySelector('.side a:nth-child(4)')); }
+setInterval(()=>{ if(typeof isCloudEnabled==='function'&&isCloudEnabled()) loadAll(true); }, 30000);
 </script>
 </body>
 </html>

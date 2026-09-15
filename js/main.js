@@ -39,4 +39,32 @@ function cardHTML(it){
 function escapeHtml(s){
   return String(s??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+// Kompres foto sebelum disimpan ke database bersama (hemat kuota + cepat di HP).
+// file -> base64 JPEG max 800px, kualitas 0.7. Fallback ke FileReader biasa jika gagal.
+function compressImageFile(file, maxDim, quality){
+  maxDim = maxDim || 800; quality = quality || 0.7;
+  return new Promise((resolve)=>{
+    if(!file){ resolve(''); return; }
+    if(!file.type || file.type.indexOf('image/')!==0){ resolve(''); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, maxDim / Math.max(w,h));
+          var nw = Math.round(w*scale), nh = Math.round(h*scale);
+          var cv = document.createElement('canvas');
+          cv.width = nw; cv.height = nh;
+          cv.getContext('2d').drawImage(img,0,0,nw,nh);
+          resolve(cv.toDataURL('image/jpeg', quality));
+        }catch(e){ resolve(ev.target.result); }
+      };
+      img.onerror = function(){ resolve(ev.target.result); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ resolve(''); };
+    reader.readAsDataURL(file);
+  });
+}
 document.addEventListener('DOMContentLoaded', setupNav);

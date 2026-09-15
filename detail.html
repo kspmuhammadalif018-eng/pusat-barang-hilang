@@ -40,16 +40,31 @@
 </div>
 
 <script src="js/store.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/main.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const id = params.get('id');
-const item = getItemById(id);
 const wrap = document.getElementById('detailWrap');
+wrap.innerHTML = `<div class="card empty"><div class="big">⏳</div><p>Memuat data...</p></div>`;
 
-if(!item){
-  wrap.innerHTML = `<div class="card empty"><div class="big">❓</div><h3>Data tidak ditemukan</h3><p>ID ${escapeHtml(id||'-')} tidak ada. Mungkin sudah dihapus.</p><a class="btn btn-primary" href="index.html" style="margin-top:12px">Ke Beranda</a></div>`;
-}else{
+let item = null;
+let allClaimsCache = [];
+
+async function initDetail(){
+  try{
+    let items = [];
+    if(typeof getItemsAsync==='function') items = await getItemsAsync();
+    else items = getItems();
+    item = items.find(x=>x.id===id);
+    if(!item) item = getItemById(id);
+  }catch(e){ item = getItemById(id); }
+
+  if(!item){
+    wrap.innerHTML = `<div class="card empty"><div class="big">❓</div><h3>Data tidak ditemukan</h3><p>ID ${escapeHtml(id||'-')} tidak ada. Mungkin sudah dihapus atau belum tersinkron dari device lain. Coba refresh.</p><a class="btn btn-primary" href="index.html" style="margin-top:12px">Ke Beranda</a></div>`;
+    return;
+  }
   const tipeTxt = item.tipe==='hilang' ? 'BARANG HILANG' : 'BARANG DITEMUKAN';
   const tipeCls = item.tipe==='hilang' ? 'tag-hilang' : 'tag-temuan';
   const imgHtml = item.foto ? `<img src="${item.foto}">` : `<span>${iconFor(item.kategori)}</span>`;
@@ -75,10 +90,14 @@ if(!item){
       </div>
     </div>
   </div>`;
-  renderClaims();
+  await renderClaims();
 }
-function renderClaims(){
-  const all = getClaims().filter(c=>c.itemId===id);
+async function renderClaims(){
+  try{
+    if(typeof getClaimsAsync==='function') allClaimsCache = await getClaimsAsync();
+    else allClaimsCache = getClaims();
+  }catch(e){ allClaimsCache = getClaims(); }
+  const all = allClaimsCache.filter(c=>c.itemId===id);
   const el = document.getElementById('claimList');
   if(!all.length){ el.innerHTML = `<p class="hint">Belum ada klaim. Jadilah yang pertama jika ini milik Anda.</p>`; return; }
   el.innerHTML = all.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px"><b>${escapeHtml(c.nama)}</b> <span class="tag tag-kat">${escapeHtml(c.status)}</span><br><span class="hint">📞 ${escapeHtml(c.kontak)} • ${fmtTanggal(c.tanggal)}<br>🧾 ${escapeHtml(c.bukti)}<br>💬 ${escapeHtml(c.pesan||'-')}</span></div>`).join('');
@@ -86,17 +105,23 @@ function renderClaims(){
 function openModal(){ document.getElementById('modalKlaim').classList.add('show'); }
 function closeModal(){ document.getElementById('modalKlaim').classList.remove('show'); }
 document.getElementById('modalKlaim').addEventListener('click', e=>{ if(e.target.id==='modalKlaim') closeModal(); });
-document.getElementById('formKlaim').addEventListener('submit', e=>{
+document.getElementById('formKlaim').addEventListener('submit', async e=>{
   e.preventDefault();
   const nama=document.getElementById('kNama').value.trim();
   const kontak=document.getElementById('kKontak').value.trim();
   const bukti=document.getElementById('kBukti').value.trim();
   const pesan=document.getElementById('kPesan').value.trim();
   if(!nama||!kontak||!bukti){ toast('Lengkapi nama, kontak, dan bukti!'); return; }
-  addClaim({itemId:id,nama,kontak,bukti,pesan});
-  closeModal(); toast('✅ Klaim terkirim, menunggu verifikasi admin');
-  setTimeout(()=>location.reload(),800);
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true; btn.textContent='⏳ Mengirim...';
+  try{
+    if(typeof addClaimAsync==='function') await addClaimAsync({itemId:id,nama,kontak,bukti,pesan});
+    else addClaim({itemId:id,nama,kontak,bukti,pesan});
+    closeModal(); toast('✅ Klaim terkirim, menunggu verifikasi admin');
+    setTimeout(()=>location.reload(),800);
+  }catch(err){ toast('Gagal: '+err.message); btn.disabled=false; btn.textContent='Kirim Klaim'; }
 });
+initDetail();
 </script>
 </body>
 </html>
